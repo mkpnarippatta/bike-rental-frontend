@@ -57,12 +57,10 @@ export async function frappeCall<T = unknown>(method: string, params?: Record<st
   return data.message as T
 }
 
-export async function uploadFile(file: File, doctype: string, docname?: string): Promise<string> {
+export async function uploadFile(file: File): Promise<string> {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('doctype', doctype)
   formData.append('is_private', '1')
-  if (docname) formData.append('docname', docname)
 
   // Build URL with CSRF token appended as query param to avoid content-type issues
   const csrf = document.cookie

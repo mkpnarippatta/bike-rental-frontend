@@ -71,7 +71,7 @@ export default function Profile() {
     setKycSuccess('')
     try {
       // Upload file via Frappe
-      const fileUrl = await uploadFile(fileInputRef.current.files[0], 'KYC Document')
+      const fileUrl = await uploadFile(fileInputRef.current.files[0])
       if (!fileUrl) throw new Error('File upload failed')
 
       // Create KYC document record
