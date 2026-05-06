@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { call } from '../api/client'
+import { call, frappeCall } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import KYCStatusBadge from '../components/KYCStatusBadge'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -55,6 +55,60 @@ export default function Profile() {
       .finally(() => setLoading(false))
   }
 
+  // KYC upload state
+  const [showKycForm, setShowKycForm] = useState(false)
+  const [docType, setDocType] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [kycError, setKycError] = useState('')
+  const [kycSuccess, setKycSuccess] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleKycUpload = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!docType || !fileInputRef.current?.files?.length) return
+    setUploading(true)
+    setKycError('')
+    setKycSuccess('')
+    try {
+      // Upload file via Frappe
+      const formData = new FormData()
+      formData.append('file', fileInputRef.current.files[0])
+      formData.append('doctype', 'KYC Document')
+      formData.append('is_private', '1')
+
+      const uploadRes = await fetch('/api/method/upload_file', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+      const uploadData = await uploadRes.json()
+      const fileUrl = uploadData.message?.file_url
+      if (!fileUrl) throw new Error('File upload failed')
+
+      // Create KYC document record
+      const customerName = data?.customer?.name
+      if (!customerName) throw new Error('Customer not found')
+
+      await call('kyc.upload_kyc_document', {
+        customer: customerName,
+        document_type: docType,
+        file_url: fileUrl,
+      })
+
+      setKycSuccess('Document uploaded for review!')
+      setDocType('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      fetchDashboard()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        || (err as Error).message
+        || 'Upload failed'
+      setKycError(msg)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   useEffect(() => {
     fetchDashboard()
   }, [])
@@ -84,12 +138,12 @@ export default function Profile() {
           )}
         </div>
         {data.customer && data.customer.kyc_status !== 'Verified' && (
-          <Link
-            to="/profile#kyc"
+          <button
+            onClick={() => setShowKycForm(!showKycForm)}
             className="text-sm text-brand-500 font-medium hover:underline"
           >
-            Complete KYC Verification
-          </Link>
+            {showKycForm ? 'Cancel' : 'Complete KYC Verification'}
+          </button>
         )}
       </div>
 
@@ -113,13 +167,61 @@ export default function Profile() {
       )}
 
       {/* KYC Documents */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+      <div id="kyc" className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">KYC Documents</h3>
-          <Link to="/profile#kyc" className="text-sm text-brand-500 font-medium hover:underline">
-            Upload
-          </Link>
+          {data.customer?.kyc_status !== 'Verified' && (
+            <button
+              onClick={() => setShowKycForm(!showKycForm)}
+              className="text-sm text-brand-500 font-medium hover:underline"
+            >
+              {showKycForm ? 'Cancel' : 'Upload'}
+            </button>
+          )}
         </div>
+
+        {/* KYC Upload Form */}
+        {showKycForm && (
+          <form onSubmit={handleKycUpload} className="mb-4 p-4 bg-gray-50 rounded-lg">
+            {kycError && (
+              <div className="p-2 bg-red-50 text-red-700 rounded text-xs mb-3">{kycError}</div>
+            )}
+            {kycSuccess && (
+              <div className="p-2 bg-green-50 text-green-700 rounded text-xs mb-3">{kycSuccess}</div>
+            )}
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">Document Type</label>
+              <select
+                value={docType}
+                onChange={(e) => setDocType(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">Select...</option>
+                <option value="ID Proof">ID Proof (Aadhaar/PAN/Voter)</option>
+                <option value="Driving License">Driving License</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">File (PDF, JPG, PNG)</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+                className="w-full text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={uploading}
+              className="w-full py-2 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : 'Upload Document'}
+            </button>
+          </form>
+        )}
+
         {data.kyc_documents.length > 0 ? (
           <div className="space-y-2">
             {data.kyc_documents.map((doc) => (
