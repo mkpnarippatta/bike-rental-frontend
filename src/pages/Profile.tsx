@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { call, frappeCall } from '../api/client'
+import { call, uploadFile } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import KYCStatusBadge from '../components/KYCStatusBadge'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -71,18 +71,7 @@ export default function Profile() {
     setKycSuccess('')
     try {
       // Upload file via Frappe
-      const formData = new FormData()
-      formData.append('file', fileInputRef.current.files[0])
-      formData.append('doctype', 'KYC Document')
-      formData.append('is_private', '1')
-
-      const uploadRes = await fetch('/api/method/upload_file', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-      const uploadData = await uploadRes.json()
-      const fileUrl = uploadData.message?.file_url
+      const fileUrl = await uploadFile(fileInputRef.current.files[0], 'KYC Document')
       if (!fileUrl) throw new Error('File upload failed')
 
       // Create KYC document record

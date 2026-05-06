@@ -57,4 +57,17 @@ export async function frappeCall<T = unknown>(method: string, params?: Record<st
   return data.message as T
 }
 
+export async function uploadFile(file: File, doctype: string, docname?: string): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('doctype', doctype)
+  formData.append('is_private', '1')
+  if (docname) formData.append('docname', docname)
+
+  const { data } = await api.post('/upload_file', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.message.file_url as string
+}
+
 export default api
