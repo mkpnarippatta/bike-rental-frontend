@@ -42,6 +42,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [kycStatus, setKycStatus] = useState<KYCStatus | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState('Cash')
 
   useEffect(() => {
     if (!model || !startDate || !endDate) {
@@ -82,6 +83,7 @@ export default function Checkout() {
       await call<{ status: string }>('booking.process_payment', {
         booking_name: booking.name,
         amount: booking.total_amount,
+        payment_method: paymentMethod,
       })
       navigate(`/confirmation?booking=${encodeURIComponent(booking.name)}&amount=${booking.total_amount}`)
     } catch (err: unknown) {
@@ -163,9 +165,43 @@ export default function Checkout() {
         {price && <PriceBreakdown price={price} />}
       </div>
 
-      {/* Payment Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-6">
-        Payment method: <strong>Cash</strong> (pay at hub)
+      {/* Payment Method */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <h3 className="font-semibold text-gray-900 mb-3">Payment Method</h3>
+        <div className="space-y-2">
+          {['Cash', 'Card', 'UPI', 'Online'].map((method) => (
+            <label
+              key={method}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                paymentMethod === method
+                  ? 'border-brand-500 bg-brand-50'
+                  : 'border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <input
+                type="radio"
+                name="payment_method"
+                value={method}
+                checked={paymentMethod === method}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="accent-brand-500"
+              />
+              <span className="text-sm font-medium text-gray-900">{method}</span>
+            </label>
+          ))}
+        </div>
+        {paymentMethod === 'Cash' && (
+          <p className="text-xs text-gray-400 mt-2">Pay at the hub during pickup.</p>
+        )}
+        {paymentMethod === 'Card' && (
+          <p className="text-xs text-gray-400 mt-2">Pay by card at the hub during pickup.</p>
+        )}
+        {paymentMethod === 'UPI' && (
+          <p className="text-xs text-gray-400 mt-2">Pay via UPI at the hub during pickup.</p>
+        )}
+        {paymentMethod === 'Online' && (
+          <p className="text-xs text-gray-400 mt-2">Online payment will be processed now.</p>
+        )}
       </div>
 
       <button
