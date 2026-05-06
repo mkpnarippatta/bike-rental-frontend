@@ -64,9 +64,16 @@ export async function uploadFile(file: File, doctype: string, docname?: string):
   formData.append('is_private', '1')
   if (docname) formData.append('docname', docname)
 
-  const { data } = await api.post('/upload_file', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  // Build URL with CSRF token appended as query param to avoid content-type issues
+  const csrf = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('csrf_token='))
+    ?.split('=')[1]
+
+  const url = `${API_BASE}/api/method/upload_file${csrf ? `?csrf_token=${csrf}` : ''}`
+  const res = await fetch(url, { method: 'POST', credentials: 'include', body: formData })
+  const data = await res.json()
+  if (!data.message?.file_url) throw new Error(data.message || 'File upload failed')
   return data.message.file_url as string
 }
 
