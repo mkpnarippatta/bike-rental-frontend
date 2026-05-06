@@ -42,7 +42,8 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [kycStatus, setKycStatus] = useState<KYCStatus | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState('Cash')
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([])
+  const [paymentMethod, setPaymentMethod] = useState('')
 
   useEffect(() => {
     if (!model || !startDate || !endDate) {
@@ -55,11 +56,19 @@ export default function Checkout() {
         start_date: startDate,
         end_date: endDate,
       }),
+      callGet<{ name: string; payment_methods?: string[] }>('catalogue.get_hubs_list').then(
+        (hubs) => hubs.find((h: { name: string }) => h.name === hub)
+      ),
     ])
-      .then(([p]) => setPrice(p))
+      .then(([p, hubInfo]) => {
+        setPrice(p)
+        const methods = (hubInfo as { payment_methods?: string[] } | undefined)?.payment_methods || ['Cash', 'Card', 'UPI']
+        setPaymentMethods(methods)
+        setPaymentMethod(methods[0] || 'Cash')
+      })
       .catch(() => setError('Failed to load pricing'))
       .finally(() => setLoading(false))
-  }, [model, startDate, endDate])
+  }, [model, startDate, endDate, hub])
 
   useEffect(() => {
     if (user?.customer?.name) {
@@ -169,7 +178,7 @@ export default function Checkout() {
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
         <h3 className="font-semibold text-gray-900 mb-3">Payment Method</h3>
         <div className="space-y-2">
-          {['Cash', 'Card', 'UPI', 'Online'].map((method) => (
+          {paymentMethods.map((method) => (
             <label
               key={method}
               className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -190,18 +199,6 @@ export default function Checkout() {
             </label>
           ))}
         </div>
-        {paymentMethod === 'Cash' && (
-          <p className="text-xs text-gray-400 mt-2">Pay at the hub during pickup.</p>
-        )}
-        {paymentMethod === 'Card' && (
-          <p className="text-xs text-gray-400 mt-2">Pay by card at the hub during pickup.</p>
-        )}
-        {paymentMethod === 'UPI' && (
-          <p className="text-xs text-gray-400 mt-2">Pay via UPI at the hub during pickup.</p>
-        )}
-        {paymentMethod === 'Online' && (
-          <p className="text-xs text-gray-400 mt-2">Online payment will be processed now.</p>
-        )}
       </div>
 
       <button
