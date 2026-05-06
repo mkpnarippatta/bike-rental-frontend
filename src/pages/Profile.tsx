@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { callGet } from '../api/client'
+import { call } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import KYCStatusBadge from '../components/KYCStatusBadge'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -19,18 +19,18 @@ interface DashboardData {
   active_booking: {
     name: string
     bike_model: string
-    hub: string
-    start_date: string
-    end_date: string
+    pickup_hub: string
+    pickup_datetime: string
+    return_datetime: string
     total_amount: number
   } | null
   recent_bookings: Array<{
     name: string
     bike_model: string
-    hub: string
+    pickup_hub: string
     status: string
-    start_date: string
-    end_date: string
+    pickup_datetime: string
+    return_datetime: string
     total_amount: number
   }>
   kyc_documents: Array<{
@@ -49,7 +49,7 @@ export default function Profile() {
 
   const fetchDashboard = () => {
     setLoading(true)
-    callGet<DashboardData>('customer_profile.get_dashboard_summary')
+    call<DashboardData>('customer_profile.get_dashboard_summary')
       .then(setData)
       .catch(() => setError('Failed to load dashboard'))
       .finally(() => setLoading(false))
@@ -99,9 +99,9 @@ export default function Profile() {
           <p className="text-sm text-white/80 mb-1">Active Rental</p>
           <h3 className="text-lg font-semibold mb-3">{data.active_booking.bike_model}</h3>
           <div className="text-sm space-y-1 text-white/90">
-            <p>Hub: {data.active_booking.hub}</p>
-            <p>Start: {new Date(data.active_booking.start_date).toLocaleDateString()}</p>
-            <p>Return: {new Date(data.active_booking.end_date).toLocaleDateString()}</p>
+            <p>Hub: {data.active_booking.pickup_hub}</p>
+            <p>Start: {new Date(data.active_booking.pickup_datetime).toLocaleDateString()}</p>
+            <p>Return: {new Date(data.active_booking.return_datetime).toLocaleDateString()}</p>
           </div>
           <Link
             to={`/bookings/${data.active_booking.name}`}
@@ -156,7 +156,7 @@ export default function Profile() {
                 <div>
                   <p className="text-sm font-medium text-gray-900">{b.bike_model}</p>
                   <p className="text-xs text-gray-400">
-                    {new Date(b.start_date).toLocaleDateString()} - {new Date(b.end_date).toLocaleDateString()}
+                    {new Date(b.pickup_datetime).toLocaleDateString()} - {new Date(b.return_datetime).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right">

@@ -25,7 +25,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const res = await callGet<{ status: string; _dev_otp?: string }>('auth.send_login_otp', { mobile })
+      const res = await call<{ status: string; _dev_otp?: string }>('auth.send_login_otp', { mobile })
       if (res.status === 'sent') {
         setOtpSent(true)
         if (res._dev_otp) setDevOtp(res._dev_otp)
@@ -43,7 +43,7 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const res = await callGet<{ status: string; redirect?: string }>('auth.verify_login_otp', { mobile, otp, redirect_to: redirectTo })
+      const res = await call<{ status: string; redirect?: string }>('auth.verify_login_otp', { mobile, otp, redirect_to: redirectTo })
       await checkSession()
       navigate(res.redirect || redirectTo, { replace: true })
     } catch (err: unknown) {
