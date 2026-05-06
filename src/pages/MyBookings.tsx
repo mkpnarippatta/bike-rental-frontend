@@ -9,10 +9,10 @@ import EmptyState from '../components/EmptyState'
 interface Booking {
   name: string
   bike_model: string
-  hub: string
+  pickup_hub: string
   status: string
-  start_date: string
-  end_date: string
+  pickup_datetime: string
+  return_datetime: string
   total_amount: number
   creation: string
 }
@@ -114,7 +114,7 @@ export default function MyBookings() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h3 className="font-semibold text-gray-900">{b.bike_model}</h3>
-                  <p className="text-xs text-gray-500">{b.hub}</p>
+                  <p className="text-xs text-gray-500">{b.pickup_hub}</p>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[b.status] || 'bg-gray-100 text-gray-500'}`}>
                   {b.status}
@@ -122,7 +122,7 @@ export default function MyBookings() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">
-                  {new Date(b.start_date).toLocaleDateString()} - {new Date(b.end_date).toLocaleDateString()}
+                  {new Date(b.pickup_datetime).toLocaleDateString()} - {new Date(b.return_datetime).toLocaleDateString()}
                 </span>
                 <span className="font-semibold text-gray-900">
                   &#8377;{Number(b.total_amount).toFixed(0)}
