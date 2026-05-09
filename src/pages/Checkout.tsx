@@ -62,7 +62,7 @@ export default function Checkout() {
     ])
       .then(([p, hubInfo]) => {
         setPrice(p)
-        const methods = (hubInfo as { payment_methods?: string[] } | undefined)?.payment_methods || ['Cash', 'Card', 'UPI']
+        const methods = (hubInfo as { payment_methods?: string[] } | undefined)?.payment_methods || ['Pay at Hub', 'Online']
         setPaymentMethods(methods)
         setPaymentMethod(methods[0] || 'Cash')
       })
