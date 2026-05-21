@@ -11,6 +11,8 @@ interface Booking {
   bike_model: string
   pickup_hub: string
   status: string
+  payment_status: string | null
+  outstanding_amount: number | null
   pickup_datetime: string
   return_datetime: string
   total_amount: number
@@ -116,9 +118,16 @@ export default function MyBookings() {
                   <h3 className="font-semibold text-gray-900">{b.bike_model}</h3>
                   <p className="text-xs text-gray-500">{b.pickup_hub}</p>
                 </div>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[b.status] || 'bg-gray-100 text-gray-500'}`}>
-                  {b.status}
-                </span>
+                <div className="flex items-center gap-2">
+                  {b.status === 'Completed' && b.payment_status === 'Unpaid' && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      Payment Due
+                    </span>
+                  )}
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[b.status] || 'bg-gray-100 text-gray-500'}`}>
+                    {b.status}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">

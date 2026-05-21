@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { callGet } from '../api/client'
+import { callGet, call } from '../api/client'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorState from '../components/ErrorState'
 
@@ -16,6 +16,10 @@ interface BookingData {
   status: string
   total_amount: number
   payment_entry: string | null
+  invoice_ref: string | null
+  invoice_paid: boolean
+  outstanding_amount: number
+  invoice_status: string | null
   deposit_released: number | null
   cancellation_reason: string | null
   cancellation_refund_amount: number | null
@@ -45,10 +49,14 @@ export default function BookingDetail() {
   const [booking, setBooking] = useState<BookingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [paying, setPaying] = useState(false)
+  const [paySuccess, setPaySuccess] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   const fetchBooking = () => {
     if (!id) return
     setLoading(true)
+    setError('')
     callGet<BookingData>('booking.get_booking_detail', { booking_name: id })
       .then(setBooking)
       .catch(() => setError('Booking not found'))
@@ -58,6 +66,22 @@ export default function BookingDetail() {
   useEffect(() => {
     fetchBooking()
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleMakePayment = async () => {
+    if (!id) return
+    setPaying(true)
+    setPaymentError('')
+    try {
+      await call('payments.pay_outstanding', { booking_name: id })
+      setPaySuccess(true)
+      fetchBooking() // Refresh with updated status
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Payment failed'
+      setPaymentError(msg)
+    } finally {
+      setPaying(false)
+    }
+  }
 
   if (loading) return <LoadingSpinner text="Loading booking details..." />
   if (error) return <ErrorState message={error} onRetry={fetchBooking} />
@@ -102,6 +126,37 @@ export default function BookingDetail() {
             <Row label="Date" value={new Date(booking.payment.posting_date).toLocaleDateString()} />
           </div>
         </div>
+      )}
+
+      {/* Invoice / Settlement status for completed bookings */}
+      {booking.status === 'Completed' && booking.invoice_ref && !booking.invoice_paid && !paySuccess && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+          <h3 className="font-semibold text-amber-800 mb-2">Payment Pending</h3>
+          <p className="text-sm text-amber-700 mb-1">
+            Invoice <strong>{booking.invoice_ref}</strong> has an outstanding amount of{' '}
+            <strong>₹{Number(booking.outstanding_amount).toFixed(2)}</strong>.
+          </p>
+          <p className="text-sm text-amber-600 mb-4">Please settle the payment to complete this booking.</p>
+          <button
+            onClick={handleMakePayment}
+            disabled={paying}
+            className="px-5 py-2.5 bg-brand-500 text-white rounded-lg font-semibold text-sm hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {paying ? 'Processing...' : `Pay ₹${Number(booking.outstanding_amount).toFixed(2)}`}
+          </button>
+        </div>
+      )}
+
+      {booking.status === 'Completed' && booking.invoice_ref && (booking.invoice_paid || paySuccess) && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-green-700 font-semibold text-sm">Invoice {booking.invoice_ref} — Paid</span>
+          </div>
+        </div>
+      )}
+
+      {paymentError && (
+        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-4">{paymentError}</div>
       )}
 
       {/* Charges for completed rentals */}
